@@ -47,7 +47,7 @@ func uploadCommand(ctx context.Context) *exec.Cmd {
 	uploadArgs := []string{
 		"put",
 		"--md5",
-		fmt.Sprintf("--storage= s3"),
+		fmt.Sprintf("--storage=s3"),
 		fmt.Sprintf("--s3-endpoint=proxy.uss.s3.test.sz.shopee.io"),
 		fmt.Sprintf("--s3-access-key=52633284"),
 		fmt.Sprintf("--s3-secret-key=afsZqzjLWuzftIwKldTldtkoacMbZRil"),
