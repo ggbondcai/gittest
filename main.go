@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os/exec"
 	"regexp"
-	"strings"
 )
 
 func main() {
-
 	//host := "http://proxy.uss.s3.test.sz.shopee.io" //s3 domain
 	//ak := "52633284"                                //appid
 	//sk := "afsZqzjLWuzftIwKldTldtkoacMbZRil"        //secret
@@ -32,8 +31,12 @@ func main() {
 	ctx := context.Background()
 	uploadCommand(ctx)
 	uploadCmd := uploadCommand(ctx)
-	a := "ddd"
-	uploadCmd.Stdin = strings.NewReader(a)
+	fileName := "file1.txt" // txt文件路径
+	data, err_read := ioutil.ReadFile(fileName)
+	if err_read != nil {
+		fmt.Println("文件读取失败！")
+	}
+	uploadCmd.Stdin = bytes.NewReader(data)
 	err := RunInSequence(uploadCmd)
 	if err != nil {
 		fmt.Printf(err.Error())
@@ -50,6 +53,7 @@ func uploadCommand(ctx context.Context) *exec.Cmd {
 		fmt.Sprintf("--s3-secret-key=afsZqzjLWuzftIwKldTldtkoacMbZRil"),
 		fmt.Sprintf("--s3-bucket=appinfraentrytask"),
 		fmt.Sprintf("--parallel=8"),
+		fmt.Sprintf("--s3-backupName=a.txt"),
 	}
 
 	return exec.CommandContext(ctx, "xbcloud", uploadArgs...)
