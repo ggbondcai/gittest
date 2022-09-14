@@ -18,7 +18,9 @@ func main() {
 	if errRead != nil {
 		fmt.Println("文件读取失败！")
 	}
-	uploadCmd.Stdin = bytes.NewReader(data)
+
+	str := bytes.NewReader(data)
+	uploadCmd.Stdin = ioutil.NopCloser(str)
 	err := RunInSequence(uploadCmd)
 	if err != nil {
 		fmt.Printf(err.Error())
