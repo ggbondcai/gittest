@@ -8,12 +8,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"io"
 	"os/exec"
 	"regexp"
 )
 
 func main() {
-	ctx := context.Background()
 	//fileName2 := "a.txt" // txt文件路径
 	//data, err_read := ioutil.ReadFile(fileName2)
 	//if err_read != nil {
@@ -23,6 +23,7 @@ func main() {
 	host := "http://proxy.uss.s3.test.sz.shopee.io/" //s3 domain
 	ak := "52633284"                                 //appid
 	sk := "afsZqzjLWuzftIwKldTldtkoacMbZRil"         //secret
+	fileName := "backup"                             //upload file name
 	s3Config := &aws.Config{
 		Credentials:          credentials.NewStaticCredentials(ak, sk, ""),
 		Endpoint:             aws.String(host),
@@ -32,29 +33,21 @@ func main() {
 		S3Disable100Continue: aws.Bool(true),
 	}
 	sess := session.New(s3Config)
-	fileName := "backup" //upload file name
-
-	backupCmd := backupCommand(ctx)
-	backupStdout, err := backupCmd.StdoutPipe()
-	if err != nil {
-		fmt.Printf("shibai ")
-		return
-	}
-	err = RunInSequence(backupCommand(ctx))
-	if err != nil {
-		fmt.Println("backup 失败")
-	}
+	//backupCmd := backupCommand(ctx)
+	//backupStdout, err := backupCmd.StdoutPipe()
+	//if err != nil {
+	//	fmt.Printf("backup 失败1")
+	//	return
+	//}
+	//err = RunInSequence(backupCommand(ctx))
+	//if err != nil {
+	//	fmt.Println("backup 失败2")
+	//}
 	uploader := s3manager.NewUploader(sess)
-
-	if err != nil {
-		fmt.Printf(err.Error())
-	}
-	//this interface does not limit the size of upload file
-	_, err = uploader.Upload(&s3manager.UploadInput{
+	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(fileName),
-		//Body:   bytes.NewReader(data),
-		Body: backupStdout,
+		Body:   Getioreader(),
 	})
 	if err != nil {
 		// Print the error and exit.
@@ -90,7 +83,7 @@ func RunInSequence(cmds ...*exec.Cmd) error {
 			fmt.Printf("execute command failed %v, command: %s, stdErr: %s", err, cmdString, stdErr.String())
 			return err
 		}
-		println("end %s without error", cmd.Path)
+		println("end  without error", cmd.Path)
 	}
 	return nil
 }
@@ -121,34 +114,24 @@ var (
 	secretRegex = regexp.MustCompile(`(.*secret[^=]*=)(\w+)(\s?.*)$`)
 )
 
-//package main
-//
-//import (
-//	"fmt"
-//	"github.com/aws/aws-sdk-go/aws"
-//	"github.com/aws/aws-sdk-go/aws/credentials"
-//	"github.com/aws/aws-sdk-go/aws/session"
-//	"github.com/aws/aws-sdk-go/service/s3"
-//)
-//
-//func main() {
-//
-//	host := "http://proxy.uss.s3.test.sz.shopee.io/" //s3 domain
-//	ak := "52633284"                                 //appid
-//	sk := "afsZqzjLWuzftIwKldTldtkoacMbZRil"         //secret
-//
-//	s3Config := &aws.Config{
-//		Credentials:      credentials.NewStaticCredentials(ak, sk, ""),
-//		Endpoint:         aws.String(host),
-//		Region:           aws.String("default"),
-//		DisableSSL:       aws.Bool(true),
-//		S3ForcePathStyle: aws.Bool(true),
-//	}
-//	sess := session.New(s3Config)
-//	svc := s3.New(sess)
-//	bucketList, err := svc.ListBuckets(nil)
-//	if err != nil {
-//		fmt.Printf("get bucket list fail: %v", err)
-//	}
-//	fmt.Println(bucketList)
-//}
+func GetFIle() io.ReadCloser {
+	ctx := context.Background()
+	backupCmd := backupCommand(ctx)
+	backupStdout, err := backupCmd.StdoutPipe()
+	if err != nil {
+		fmt.Println("backup 失败2")
+		return nil
+	}
+	return backupStdout
+}
+func Getioreader() io.Reader {
+	ctx := context.Background()
+	backupCmd := backupCommand(ctx)
+	backupStdout, err := backupCmd.StdoutPipe()
+	if err != nil {
+		fmt.Printf("backup 失败1")
+		return nil
+	}
+	err = RunInSequence(backupCommand(ctx))
+	return backupStdout
+}
