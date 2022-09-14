@@ -53,7 +53,6 @@ func uploadCommand(ctx context.Context) *exec.Cmd {
 		fmt.Sprintf("--s3-secret-key=afsZqzjLWuzftIwKldTldtkoacMbZRil"),
 		fmt.Sprintf("--s3-bucket=appinfraentrytask"),
 		fmt.Sprintf("--parallel=8"),
-		fmt.Sprintf("--s3-backupName=a.txt"),
 	}
 
 	return exec.CommandContext(ctx, "xbcloud", uploadArgs...)
