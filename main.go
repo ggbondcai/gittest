@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"io"
+	"io/ioutil"
 	"os/exec"
 	"regexp"
 )
@@ -47,7 +48,7 @@ func main() {
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(fileName),
-		Body:   Getioreader(),
+		Body:   GetIoreader(),
 	})
 	if err != nil {
 		// Print the error and exit.
@@ -55,7 +56,24 @@ func main() {
 		return
 	}
 	fmt.Printf("Upload %q to %q success", fileName, bucket)
-
+}
+func backupCommand(ctx context.Context) *exec.Cmd {
+	backupArgs := []string{
+		"--backup",
+		"--stream=xbstream",
+		fmt.Sprintf("--host=localhost"),
+		fmt.Sprintf("--port=3306"),
+		fmt.Sprintf("--user=root"),
+		fmt.Sprintf("--password=123456"),
+		fmt.Sprintf("--target-dir=/temp"),
+		fmt.Sprintf("--extra-lsndir=/temp"),
+		fmt.Sprintf("--parallel=8"),
+		"--compress",
+		"--compress-threads=8",
+		"--read-buffer-size=2G",
+		"--encrypt-chunk-size=2G",
+	}
+	return exec.CommandContext(ctx, "xtrabackup", backupArgs...)
 }
 func uploadCommand(ctx context.Context) *exec.Cmd {
 	uploadArgs := []string{
@@ -93,38 +111,13 @@ func PrintCmd(cmd *exec.Cmd) string {
 	s = secretRegex.ReplaceAllString(s, "$1***$3")
 	return s
 }
-func backupCommand(ctx context.Context) *exec.Cmd {
-	backupArgs := []string{
-		"--backup",
-		"--stream=xbstream",
-		fmt.Sprintf("--host=localhost"),
-		fmt.Sprintf("--port=3306"),
-		fmt.Sprintf("--user=root"),
-		fmt.Sprintf("--password=123qwevim"),
-		fmt.Sprintf("--target-dir=/temp"),
-		fmt.Sprintf("--extra-lsndir=/temp"),
-		fmt.Sprintf("--parallel=8"),
-	}
-
-	return exec.CommandContext(ctx, "xtrabackup", backupArgs...)
-}
 
 var (
 	pwRegex     = regexp.MustCompile(`(.*password[^=]*=)(\w+)(\s?.*)$`)
 	secretRegex = regexp.MustCompile(`(.*secret[^=]*=)(\w+)(\s?.*)$`)
 )
 
-func GetFIle() io.ReadCloser {
-	ctx := context.Background()
-	backupCmd := backupCommand(ctx)
-	backupStdout, err := backupCmd.StdoutPipe()
-	if err != nil {
-		fmt.Println("backup 失败2")
-		return nil
-	}
-	return backupStdout
-}
-func Getioreader() io.Reader {
+func GetIoreader() io.Reader {
 	ctx := context.Background()
 	backupCmd := backupCommand(ctx)
 	backupStdout, err := backupCmd.StdoutPipe()
@@ -133,5 +126,6 @@ func Getioreader() io.Reader {
 		return nil
 	}
 	err = RunInSequence(backupCommand(ctx))
+	fmt.Println(ioutil.ReadAll(backupStdout))
 	return backupStdout
 }
